@@ -40,4 +40,4 @@ class TestWorkerBasic(unittest.TestCase):
         self.assertEqual(len(results[0]), 3)    # Check that results are in triplets (check formatting)
 
     def test_worker_add_links(self):
-        pass
+        test = "test"
