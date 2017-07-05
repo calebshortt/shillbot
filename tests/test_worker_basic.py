@@ -1,6 +1,7 @@
 
 import unittest
 import codecs
+import os
 
 from workers.basic_worker import BasicUserParseWorker
 
@@ -28,8 +29,9 @@ class TestWorkerBasic(unittest.TestCase):
         :return:
         """
         worker = BasicUserParseWorker("https://www.reddit.com/user/Chrikelnel")
+        file_path = '%s/%s' % (os.path.dirname(os.path.realpath(__file__)), 'test_resources/sample_GET_response.html')
 
-        with codecs.open('test_resources/sample_GET_response.html', encoding='utf-8') as f:
+        with codecs.open(file_path, encoding='utf-8') as f:
             text = f.read()
 
         results, next_page = worker.parse_text(str(text).strip().replace('\r\n', ''))
