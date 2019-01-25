@@ -40,14 +40,14 @@ class MothershipServer(object):
             try:
                 data = worker.recv(self.buff_size)
                 if data:
-                    json_data = json.loads(data)
+                    json_data = json.loads(data.decode("utf-8"))
                     print('%s' % json_data)
                 else:
                     raise ValueError('No Value Given')
-            except:
+            except ValueError as e:
                 worker.close()
-                return False
-
+                # return False
+                raise e
 
 
 
