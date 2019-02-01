@@ -5,6 +5,8 @@ import settings
 import json
 import time
 import logging
+import math
+import textwrap
 
 from lxml import html
 
@@ -113,7 +115,11 @@ class BasicUserParseWorker(object):
         }
         data_s = json.dumps(data)
 
-        sock.send(data_s.encode('utf-8'))
+        frames = textwrap.wrap(data_s, settings.BUFFER_SIZE)
+        for frame in frames:
+            sock.send(frame.encode('utf-8'))
+
+        # sock.send(settings.SOCK_END_RECV.encode('utf-8'))
         sock.close()
 
     def parse_text(self, text):
