@@ -133,14 +133,19 @@ class BasicUserParseWorker(object):
         page_tree = html.fromstring(text)
 
         try:
+            return self.parse_new_reddit(page_tree, training_label=training_label)
+        except Exception:
+            log.debug('Target page was not in "new" format. Attempting other parsing methods.')
+
+        try:
             return self.parse_new_old_reddit(page_tree, training_label=training_label)
         except IndexError:
-            log.debug('Target page was not in "new-old" format. Attempting other parsing methods.')
+            log.debug('Target page was not in "old-new" format. Attempting other parsing methods.')
 
         try:
             return self.parse_old_reddit(page_tree, training_label=training_label)
         except Exception:
-            log.debug('Target page was not in "old" format. Attempting other parsing methods.')
+            log.debug('Target page was not in "old" format. Abandoning attempts.')
 
         return {}, None
 
@@ -162,7 +167,6 @@ class BasicUserParseWorker(object):
         next_page = page_tree.xpath('.//span[@class="next-button"]/a/@href')
         return results, next_page
 
-
     def parse_new_old_reddit(self, page_tree, training_label=None):
 
         table = page_tree.xpath('.//div[@class="PostList"]')[0]
@@ -179,7 +183,24 @@ class BasicUserParseWorker(object):
 
             results.append((title, subreddit, post_text, post_link, post_author, training_label))
 
-        return results, 0
+        return results, None
+
+    def parse_new_reddit(self, page_tree, training_label=None):
+
+        table = page_tree.xpath('.//div[contains(@class, "rpBJOHq2PR60pnwJlUyP0")]')[0]
+        entries = table.xpath('.//div[contains(@class, "scrollerItem")]')
+
+        results = []
+        for entry in entries:
+            title = ''.join(entry.xpath('.//h2[contains(@class, "s1okktje-0")]/text()'))
+            post_link = ''.join(entry.xpath('.//a[contains(@class, "SQnoC3ObvgnGjWt90zD9Z")]/@href'))
+            post_author = ''.join(entry.xpath('.//a[contains(@class, "_2tbHP6ZydRpjI44J3syuqC")]/text()'))
+            subreddit = ''.join(entry.xpath('.//a[contains(@data-click-id, "subreddit")]/text()'))
+            post_text = ''.join(entry.xpath('.//div[contains(@class, "s3y81c0-0")]/descendant::*/text()'))
+
+            results.append((title, subreddit, post_text, post_link, post_author, training_label))
+
+        return results, None
 
     def add_links(self, links):
         """
