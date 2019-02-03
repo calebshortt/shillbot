@@ -20,17 +20,18 @@ class DataAnalyzer(object):
 
     def init_training(self, shill_filepath, notshill_filepath):
 
-        content = []
-        with open(shill_filepath, 'r') as f:
-            content = f.readlines()
-        shill_targets = [x.strip() for x in content]
+        s_content = []
+        with open(shill_filepath, 'r') as fs:
+            s_content = fs.readlines()
+        shill_targets = [x.strip() for x in s_content]
 
         notshill_targets = []
+        ns_content = []
         if notshill_filepath:
-            with open(shill_filepath, 'r') as f:
-                content = f.readlines()
+            with open(notshill_filepath, 'r') as fns:
+                ns_content = fns.readlines()
 
-            notshill_targets = [x.strip() for x in content]
+            notshill_targets = [x.strip() for x in ns_content]
 
         corpus = []
         for shill in shill_targets:
@@ -54,7 +55,9 @@ class DataAnalyzer(object):
         for post in posts:
             title, subreddit, post_text, post_link, post_author, training_label = post
             post_text = str(post_text).lower()
-            corpus.append(post_text)
+            title = str(title).lower()
+            composite_str = '%s %s %s %s' % (post_text, subreddit, post_author, title)
+            corpus.append(composite_str)
             training_labels.append(training_label)
 
         count_vect = CountVectorizer(stop_words='english')
@@ -90,14 +93,15 @@ class DataAnalyzer(object):
         corpus = []
 
         for post in posts:
-
             title, subreddit, post_text, post_link, post_author, training_label = post
             post_text = str(post_text).lower()
-            corpus.append(post_text)
+            title = str(title).lower()
+            composite_str = '%s %s %s %s' % (post_text, subreddit, post_author, title)
+            corpus.append(composite_str)
 
         predictions = self.classifier.predict(corpus)
 
-        print(predictions)
+        print('Target %s: \n%s\n' % (data.get('root', ''), predictions))
 
 
 

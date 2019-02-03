@@ -46,7 +46,7 @@ class MothershipServer(object):
         while True:
             try:
                 data = self.data_queue.get()
-                print('DEBUG: %s\n' % data)
+                # print('DEBUG: %s\n' % data)
                 self.analyzer.classify_data(data)
                 self.data_queue.task_done()
                 if data == 'quit':
