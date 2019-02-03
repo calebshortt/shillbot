@@ -92,9 +92,6 @@ class BasicUserParseWorker(object):
             self.crawled.append(url)
             time.sleep(self.link_delay)
 
-        # NOTE: This might become a scalability/response-time issue as results are ONLY sent AFTER the crawler finishes
-        # FIX: would be to send data after each iteration and stitch them together on the server side using a reference
-
         log.debug('Woker job complete. Sending to Mother...')
         self.send_to_mother(self.results, self.original_target)
 
@@ -119,7 +116,6 @@ class BasicUserParseWorker(object):
         for frame in frames:
             sock.send(frame.encode('utf-8'))
 
-        # sock.send(settings.SOCK_END_RECV.encode('utf-8'))
         sock.close()
 
     def parse_text(self, text):
@@ -132,20 +128,12 @@ class BasicUserParseWorker(object):
         :return: a list of posts in the form [(title, subreddit, post_text), ...]
         """
         page_tree = html.fromstring(text)
-        # table = page_tree.get_element_by_id('siteTable')
         table = page_tree.xpath('.//div[@class="PostList"]')[0]
-
-        # entries = table.xpath('.//div[contains(@class, "thing")]')
         entries = table.xpath('.//div[contains(@class, "Post__content m-profile")]')
 
         results = []
 
         for entry in entries:
-
-            # title = entry.xpath('.//a[@class="title"]/text()')
-            # subreddit = entry.xpath('.//a[contains(@class, "subreddit")]/text()')
-            # post_text = entry.xpath('.//div[contains(@class, "usertext-body")]//text()')
-
             title = ''.join(entry.xpath('.//a[contains(@class, "Post__titleLink")]/text()'))
             post_link = ''.join(entry.xpath('.//a[contains(@class, "Post__sourceLink")]/text()'))
             post_author = ''.join(entry.xpath('.//a[contains(@class, "Post__authorLink")]/text()'))
@@ -154,12 +142,6 @@ class BasicUserParseWorker(object):
 
             results.append((title, subreddit, post_text, post_link, post_author))
 
-        # next_page = page_tree.xpath('.//span[@class="next-button"]/a/@href')
-
-        # if len(next_page) > 0:
-        #     next_page = next_page[0]
-
-        # return results, next_page
         return results, 0
 
     def add_links(self, links):

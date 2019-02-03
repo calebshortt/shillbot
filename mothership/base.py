@@ -9,9 +9,6 @@ from queue import Queue
 from mothership.analytics import DataAnalyzer
 
 
-# data_queue = Queue()
-
-
 class MothershipServer(object):
 
     host = ''
@@ -73,6 +70,7 @@ class MothershipServer(object):
                 print('Connection Received: %s' % str(address))
                 thread = threading.Thread(target=self.handle_worker_contact, args=(worker, address)).start()
             except:
+                print('EXCEPTION! Could not operate.')
                 if thread:
                     thread.join()
                 break
