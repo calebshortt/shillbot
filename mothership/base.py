@@ -9,6 +9,9 @@ from queue import Queue
 from mothership.analytics import DataAnalyzer
 
 
+# data_queue = Queue()
+
+
 class MothershipServer(object):
 
     host = ''
@@ -37,20 +40,29 @@ class MothershipServer(object):
         :return:
         """
         while True:
-            data = self.data_queue.get(block=True)
-            if data != 'quit':
-                break
-            self.analyzer.parse_data(data)
+            try:
+                data = self.data_queue.get()
+                print('DEBUG: %s\n' % data)
+                # self.analyzer.parse_data(data)
+                self.data_queue.task_done()
+                if data == 'quit':
+                    break
+
+            except:
+                print('EXCEPTION! Could not parse data. Skipping.')
+                self.data_queue.task_done()
+
 
 
     def run(self):
 
         print('Starting Mothership.')
 
-        # consumer = threading.Thread(target=self.data_consumer)
-        # consumer.start()
+        consumer = threading.Thread(target=self.data_consumer)
+        consumer.daemon = True
+        consumer.start()
 
-        self.sock.listen(5)
+        self.sock.listen(10)
         print('Mother is listening...')
 
         thread = None
@@ -59,9 +71,7 @@ class MothershipServer(object):
                 worker, address = self.sock.accept()
                 worker.settimeout(60)
                 print('Connection Received: %s' % str(address))
-                thread = threading.Thread(target=self.handle_worker_contact, args=(worker, address))
-                thread.start()
-                thread.join()
+                thread = threading.Thread(target=self.handle_worker_contact, args=(worker, address)).start()
             except:
                 if thread:
                     thread.join()
@@ -69,28 +79,28 @@ class MothershipServer(object):
 
         print('Shutting Down...')
         self.data_queue.put('quit')
-        # consumer.join()
+        self.data_queue.join()
+        consumer.join()
         print('Done.')
 
     def handle_worker_contact(self, worker, address):
-        while True:
-            try:
-                frames = []
-                while True:
-                    frame = worker.recv(self.buff_size)
-                    if frame == settings.SOCK_END_RECV or frame == '' or not frame:
-                        break
-                    frames.append(frame.decode('utf-8'))
 
-                data = ''.join(frames)
-                if data:
-                    # json_data = json.loads(data.decode("utf-8"))
-                    json_data = json.loads(data)
-                    self.data_queue.put(json_data)
-                else:
-                    raise ValueError('No Value Given')
-            except ValueError as e:
-                worker.close()
+        try:
+            frames = []
+            while True:
+                frame = worker.recv(self.buff_size)
+                if frame == settings.SOCK_END_RECV or frame == '' or not frame:
+                    worker.close()
+                    break
+                frames.append(frame.decode('utf-8'))
+
+            data = ''.join(frames)
+            if data:
+                json_data = json.loads(data)
+                self.data_queue.put(json_data)
+
+        except ValueError as e:
+            worker.close()
 
 
 
