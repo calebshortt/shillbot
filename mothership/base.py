@@ -1,4 +1,5 @@
 
+import os
 import socket
 import threading
 import json
@@ -19,6 +20,9 @@ class MothershipServer(object):
     analyzer = None
     data_queue = None
 
+    shill_file = None
+    noshill_file = None
+
     def __init__(self):
         self.host = settings.MOTHERSHIP.get('host', 'localhost')
         self.port = settings.MOTHERSHIP.get('port', 8080)
@@ -28,8 +32,11 @@ class MothershipServer(object):
         self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.sock.bind((self.host, self.port))
 
+        self.shill_file = '%s/resources/shill_file.txt' % os.getcwd()
+        self.noshill_file = '%s/resources/not_shill.txt' % os.getcwd()
+
         self.data_queue = Queue()
-        self.analyzer = DataAnalyzer()
+        self.analyzer = DataAnalyzer(self.shill_file, self.noshill_file)
 
     def data_consumer(self):
         """
@@ -40,7 +47,7 @@ class MothershipServer(object):
             try:
                 data = self.data_queue.get()
                 print('DEBUG: %s\n' % data)
-                # self.analyzer.parse_data(data)
+                self.analyzer.classify_data(data)
                 self.data_queue.task_done()
                 if data == 'quit':
                     break
@@ -48,8 +55,6 @@ class MothershipServer(object):
             except:
                 print('EXCEPTION! Could not parse data. Skipping.')
                 self.data_queue.task_done()
-
-
 
     def run(self):
 

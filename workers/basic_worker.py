@@ -44,7 +44,7 @@ class BasicUserParseWorker(object):
         self.max_links = settings.WORKERS.get('max_links', 10)
         self.link_delay = settings.WORKERS.get('link_delay', 0.25)
 
-    def run(self):
+    def run(self, training_label=None, local=False):
 
         log.debug('Running worker...')
 
@@ -81,7 +81,7 @@ class BasicUserParseWorker(object):
             self.cur_links += 1
 
             text = resp.text
-            parse_results, next_page = self.parse_text(text)
+            parse_results, next_page = self.parse_text(text, training_label=training_label)
 
             if parse_results:
                 self.results += parse_results
@@ -92,8 +92,11 @@ class BasicUserParseWorker(object):
             self.crawled.append(url)
             time.sleep(self.link_delay)
 
-        log.debug('Woker job complete. Sending to Mother...')
-        self.send_to_mother(self.results, self.original_target)
+        if local:
+            return self.results, self.original_target
+        else:
+            log.debug('Woker job complete. Sending to Mother...')
+            self.send_to_mother(self.results, self.original_target)
 
     def send_to_mother(self, data, original_target):
         log.debug('sending data to mother. Original target: %s' % original_target)
@@ -118,7 +121,7 @@ class BasicUserParseWorker(object):
 
         sock.close()
 
-    def parse_text(self, text):
+    def parse_text(self, text, training_label=None):
         """
         Parse the raw text from the link GET request
         NOTE: post_text can have multiple elements.
@@ -140,7 +143,7 @@ class BasicUserParseWorker(object):
             subreddit = ''.join(entry.xpath('.//div[contains(@class, "Post__tagline")]/a[contains(@class, "Post__subredditLink")]/text()'))
             post_text = ''.join(entry.xpath('.//div[contains(@class, "Post__prominentComment")]/div/div/div[contains(@class, "md")]/p/text()'))
 
-            results.append((title, subreddit, post_text, post_link, post_author))
+            results.append((title, subreddit, post_text, post_link, post_author, training_label))
 
         return results, 0
 
