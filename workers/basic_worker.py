@@ -87,7 +87,7 @@ class BasicUserParseWorker(object):
                 self.results += parse_results
 
             if next_page:
-                self.add_links([next_page])
+                self.add_links(next_page)
 
             self.crawled.append(url)
             time.sleep(self.link_delay)
@@ -131,6 +131,40 @@ class BasicUserParseWorker(object):
         :return: a list of posts in the form [(title, subreddit, post_text), ...]
         """
         page_tree = html.fromstring(text)
+
+        try:
+            return self.parse_new_old_reddit(page_tree, training_label=training_label)
+        except IndexError:
+            log.debug('Target page was not in "new-old" format. Attempting other parsing methods.')
+
+        try:
+            return self.parse_old_reddit(page_tree, training_label=training_label)
+        except Exception:
+            log.debug('Target page was not in "old" format. Attempting other parsing methods.')
+
+        return {}, None
+
+    def parse_old_reddit(self, page_tree, training_label=None):
+        table = page_tree.get_element_by_id('siteTable')
+        entries = table.xpath('.//div[contains(@class, "thing")]')
+
+        results = []
+        for entry in entries:
+            title = entry.xpath('.//a[@class="title"]/text()')
+            subreddit = entry.xpath('.//a[contains(@class, "subreddit")]/text()')
+            post_text = entry.xpath('.//div[contains(@class, "usertext-body")]//text()')
+
+            post_link = entry.xpath('.//a[@class="title"]/@href')
+            post_author = entry.xpath('.//a[contains(@class, "author")]//text()')
+
+            results.append((title, subreddit, post_text, post_link, post_author, training_label))
+
+        next_page = page_tree.xpath('.//span[@class="next-button"]/a/@href')
+        return results, next_page
+
+
+    def parse_new_old_reddit(self, page_tree, training_label=None):
+
         table = page_tree.xpath('.//div[@class="PostList"]')[0]
         entries = table.xpath('.//div[contains(@class, "Post__content m-profile")]')
 
