@@ -1,6 +1,7 @@
 
 .idea
 resources/
+tests/
 
 *.pyc
 
